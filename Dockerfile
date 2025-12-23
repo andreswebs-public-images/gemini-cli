@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM docker.io/library/node:24-trixie-slim
+FROM docker.io/library/node:25-trixie-slim
 
 ARG DEBIAN_FRONTEND="noninteractive"
 
