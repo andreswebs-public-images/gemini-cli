@@ -32,6 +32,13 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
+          flavor: |
+            latest=true
+            prefix=
+            suffix=
+          tags: |
+            type=sha
+            type=sha,format=long
           images: |
             ${{ env.CONTAINER_REGISTRY }}/${{ env.CONTAINER_REPOSITORY }}
 

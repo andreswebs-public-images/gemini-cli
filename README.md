@@ -1,6 +1,6 @@
 # gemini-cli
 
-Gemini CLI
+Gemini CLI with Node.js LTS and some extra packages.
 
 <https://geminicli.com/docs/>
 
