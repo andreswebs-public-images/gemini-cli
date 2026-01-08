@@ -27,12 +27,12 @@ RUN <<EOT
     rm -rf /var/lib/apt/lists/*
 EOT
 
-RUN npm install --global @google/gemini-cli
-
 WORKDIR /workspace
 
 RUN chown --recursive node:node /workspace
 
 USER node
+
+RUN npm install --global @google/gemini-cli
 
 ENTRYPOINT [ "gemini" ]
