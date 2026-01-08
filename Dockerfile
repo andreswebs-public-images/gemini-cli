@@ -31,9 +31,11 @@ WORKDIR /workspace
 
 RUN chown --recursive node:node /workspace
 
+ENV NPM_CONFIG_PREFIX="/home/node/.npm-global"
+ENV PATH="${PATH}:/home/node/.npm-global/bin"
+
 USER node
 
 RUN npm install --global @google/gemini-cli
-RUN npx @google-cloud/gcloud-mcp init --agent=gemini-cli
 
 ENTRYPOINT [ "gemini" ]
