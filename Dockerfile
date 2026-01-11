@@ -27,6 +27,8 @@ RUN <<EOT
     rm -rf /var/lib/apt/lists/*
 EOT
 
+COPY --from=mikefarah/yq /usr/bin/yq /usr/bin/yq
+
 WORKDIR /workspace
 
 RUN chown --recursive node:node /workspace
