@@ -5,7 +5,7 @@ ARG DEBIAN_FRONTEND="noninteractive"
 ARG DEBCONF_NONINTERACTIVE_SEEN="true"
 
 COPY --from=mikefarah/yq /usr/bin/yq /usr/local/bin/
-COPY --from=denoland/deno:bin-2.6.4 /deno /usr/local/bin/
+COPY --from=denoland/deno:bin /deno /usr/local/bin/
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 COPY --from=oven/bun:1 /usr/local/bin/bun /usr/local/bin/bunx /usr/local/bin/
 
@@ -13,13 +13,18 @@ RUN <<EOT
     set -o errexit
     apt-get update
     apt-get install --yes --no-install-recommends \
+        bash-completion \
         bc \
         bzip2 \
         ca-certificates \
         curl \
+        direnv \
         dnsutils \
+        file \
         gh \
         git \
+        gnupg \
+        htop \
         jq \
         less \
         lsof \
@@ -30,9 +35,11 @@ RUN <<EOT
         psmisc \
         ripgrep \
         rsync \
+        shelltestrunner \
         socat \
         sudo \
         tree \
+        tmux \
         unzip \
         vim \
         zip
@@ -40,12 +47,32 @@ RUN <<EOT
     rm -rf /var/lib/apt/lists/*
 EOT
 
+ARG APP_UID="2000"
+ARG APP_GID="2000"
+ARG APP_USER="gemini"
+
+RUN \
+    groupadd \
+      --gid "${APP_GID}" "${APP_USER}" && \
+    useradd \
+      --gid "${APP_GID}" \
+      --uid "${APP_UID}" \
+      --comment "" \
+      --shell /bin/bash \
+      --create-home \
+      "${APP_USER}"
+
+RUN \
+    mkdir --parents /etc/sudoers.d/ && \
+    echo "${APP_USER} ALL=(ALL) NOPASSWD:ALL" > "/etc/sudoers.d/${APP_USER}" && \
+    chmod 0440 "/etc/sudoers.d/${APP_USER}"
+
 WORKDIR /workspace
-RUN chown --recursive node:node /workspace
+RUN chown --recursive "${APP_USER}:${APP_USER}" /workspace
 
-USER node
+USER "${APP_USER}"
 
-ENV HOME="/home/node"
+ENV HOME="/home/${APP_USER}"
 ENV NPM_CONFIG_PREFIX="${HOME}/.npm-global"
 ENV PATH="${HOME}/.local/bin:${HOME}/.npm-global/bin:${HOME}/.bun/bin:${PATH}"
 ENV EDITOR="vim"
