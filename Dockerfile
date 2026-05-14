@@ -8,6 +8,8 @@ COPY --from=mikefarah/yq /usr/bin/yq /usr/local/bin/
 COPY --from=denoland/deno:bin /deno /usr/local/bin/
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 COPY --from=oven/bun:1 /usr/local/bin/bun /usr/local/bin/bunx /usr/local/bin/
+COPY --from=golang:1.26-alpine /usr/local/go/ /usr/local/go/
+COPY --from=golangci/golangci-lint:latest-alpine /usr/bin/golangci-lint /usr/local/bin/
 
 RUN <<EOT
     set -o errexit
@@ -31,10 +33,12 @@ RUN <<EOT
         man-db \
         netcat-openbsd \
         openssh-client \
+        poppler-utils \
         procps \
         psmisc \
         ripgrep \
         rsync \
+        shellcheck \
         shelltestrunner \
         socat \
         sudo \
@@ -51,38 +55,58 @@ ARG APP_UID="2000"
 ARG APP_GID="2000"
 ARG APP_USER="gemini"
 
-RUN \
+RUN <<EOT
+    set -o errexit
     groupadd \
-      --gid "${APP_GID}" "${APP_USER}" && \
+        --gid "${APP_GID}" "${APP_USER}"
     useradd \
-      --gid "${APP_GID}" \
-      --uid "${APP_UID}" \
-      --comment "" \
-      --shell /bin/bash \
-      --create-home \
-      "${APP_USER}"
+        --gid "${APP_GID}" \
+        --uid "${APP_UID}" \
+        --comment "" \
+        --shell /bin/bash \
+        --create-home \
+        "${APP_USER}"
+EOT
 
-RUN \
-    mkdir --parents /etc/sudoers.d/ && \
-    echo "${APP_USER} ALL=(ALL) NOPASSWD:ALL" > "/etc/sudoers.d/${APP_USER}" && \
+RUN <<EOT
+    set -o errexit
+    mkdir --parents /etc/sudoers.d/
+    echo "${APP_USER} ALL=(ALL) NOPASSWD:ALL" > "/etc/sudoers.d/${APP_USER}"
     chmod 0440 "/etc/sudoers.d/${APP_USER}"
+EOT
+
+RUN <<EOT
+    set -o errexit
+    mkdir /workspace
+    chown --recursive "${APP_USER}:${APP_USER}" /workspace
+EOT
 
 WORKDIR /workspace
-RUN chown --recursive "${APP_USER}:${APP_USER}" /workspace
-
 USER "${APP_USER}"
 
 ENV HOME="/home/${APP_USER}"
 ENV NPM_CONFIG_PREFIX="${HOME}/.npm-global"
-ENV PATH="${HOME}/.local/bin:${HOME}/.npm-global/bin:${HOME}/.bun/bin:${PATH}"
+ENV PATH="${HOME}/.local/bin:${HOME}/.npm-global/bin:${HOME}/.bun/bin:/usr/local/go/bin:${HOME}/go/bin:${PATH}"
 ENV EDITOR="vim"
+ENV DO_NOT_TRACK="true"
+
+RUN <<EOT
+    set -o errexit
+    mkdir --mode 0700 "${HOME}/.ssh"
+    ssh-keyscan github.com >> "${HOME}/.ssh/known_hosts"
+    ssh-keyscan gitlab.com >> "${HOME}/.ssh/known_hosts"
+    chmod 0600 "${HOME}/.ssh/known_hosts"
+EOT
 
 RUN mkdir --parents "${HOME}/.local/share"
 RUN mkdir --parents "${HOME}/.local/bin"
+RUN mkdir --parents "${HOME}/.cache"
 RUN echo 'export PS1="\e[34m\u@\h\e[35m \w\e[0m\n$ "' >> "${HOME}/.bashrc"
 
 RUN npm install --global @dbml/cli
 RUN npm install --global @sourcemeta/jsonschema
+RUN npm install --global agent-browser
+RUN go install mvdan.cc/sh/v3/cmd/shfmt@latest
 
 RUN <<EOT
     set -o errexit -o pipefail
